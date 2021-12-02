@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>WTSA Routes & Food</title>
+    <link rel="shortcut icon" type="image/jpg" href="assets/images/wsta_original.png"/>
+    	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.0/dist/leaflet.css"/>
+	    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.14.0/css/all.css">
+        <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css" rel='stylesheet'/>
+        <link href="https://fonts.googleapis.com/css?family=Lora" rel="stylesheet">
+        <link rel="stylesheet" href="https://leaflet.github.io/Leaflet.markercluster/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://leaflet.github.io/Leaflet.markercluster/dist/MarkerCluster.Default.css" />
+<script src="https://leaflet.github.io/Leaflet.markercluster/dist/leaflet.markercluster-src.js"></script>
+
+    <style>
+ 	html, body, #map { width: 100%; height: 100%; margin: 0; background: #fff; }
+
+
+.legend {
+    line-height: 40px;
+    font-size: 16px;
+    width: 190px;
+    color: #333333;
+    padding: 6px 8px;
+    background: white;
+    background: rgba(255,255,255,0.5);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    font-family: 'Titillium Web', sans-serif;
+
+}
+
+.legend i {
+    width: 20px;
+    height: 20px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.9;
+}
+
+.legend img {
+    width: 16px;
+    height: 16px;
+    margin-right: 3px;
+    float: left;
+}
+
+.legend p {
+    font-size: 14px;
+    line-height: 20px;
+    margin: 0;
+}
+
+h1 {
+  position: absolute;
+  margin-top: 0;
+  top: 10px;
+  left: 350px;
+  font-size: 2em;
+  font-family: "Lora", serif;
+  color: #ffffff
+  letter-spacing: .04em;
+  padding: 10px 15px;
+  background: rgba(70, 107, 187, .45);
+  border: 1px solid grey;
+  border-radius: 3px;
+  z-index: 800;
+}
+
+h2 {
+  font-family: "Lora", serif;
+  letter-spacing: .04em;
+}
+
+section {
+  position: absolute;
+  bottom: 0;
+  left: 10px;
+  width: 280px;
+  margin: 20px auto;
+  padding: 0 15px;
+  background: rgba(256, 256, 256);
+  border: 1px solid grey;
+  border-radius: 3px;
+  z-index: 800;
+}
+
+
+    </style>
+
+    	<link href="https://fonts.googleapis.com/css?family=Titillium+Web" rel="stylesheet">
+	     <script src="https://unpkg.com/leaflet@1.7.0/dist/leaflet.js"></script>
+	       <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-ajax/2.1.0/leaflet.ajax.min.js"></script>
+	        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+	         <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/1.3.4/chroma.min.js"></script>
+</head>
+<body>
+
+<h1>WSTA Bus Routes and Food Sources</h1>
+
+  <section>
+    <h2>Hunger and Bus Route Solutions</h2>
+
+		<p> Winston-Salem NC is one of the larger cities in the state, with newly-released census data estimating its total population to be <a href="https://data.census.gov/cedsci/all?q=Winston-Salem">249,545 people,</a> with tens of thousands of more residents throughout Forsyth County.
+     Despite the continued economic growth of the municipality, there have been deep-seeded issues when it comes to food security, specifically with lower-income individuals.
+        Unfortunately, a report in 2011 named Winston-Salem the <a href="https://journalnow.com/news/local/hunger-study-calls-area-worst-in-u-s/article_136ce0c7-6763-5cb9-9e39-3f23dd0113ec.html">'worst metro area in the United States' in hunger metrics</a>, with 35% of households with kids that cannot afford adequate food.</p>
+        Due to the severity of this situation, the City of Winston-Salem and community leaders have stepped up to reduce hunger, and although the pandemic <a href="https://www.wxii12.com/article/more-children-in-forsyth-county-experience-food-insecurity/36832719">has stiffled some of this progress,</a> the infrastructure for food sources and access has increased, specifically with the Winston-Salem Transit Authority's bussing routes.</p>
+    <p> However, do these routes accomidate a large portion of those facing hunger issues?  This interactive web map seeks to give more context, as it displays sources of food and WTSA-run bus routes, as to show the connectivity of public transportation in the city.
+		</p>
+
+		<p>Route Information provided by <a href="https://wstransit.com/routes-and-schedules/">WTSA</a></p>
+    <p>Food Source Information provided by <a href="https://mapf.maps.arcgis.com/apps/webappviewer/index.html?id=7492bd14581d4ac1a581f31ff506b7dc">The Forsyth County Department of Social Services</a>
+		<p>Map authored by Abe Krell</p>
+<img src="assets/images/wsta_adjusted.png" alt="WSTA Logo (blue)" style="width:250px;height:100px;">
+  </section>
+
+<div id="map"></div>
+<script>
+
+  // 1. Create a map object.
+  var mymap = L.map('map', {
+      center: [36.09794, -80.24574],
+      zoom: 12,
+      detectRetina: true // detect whether the screen is high resolution or not.
+  });
+
+  // 2. Add a base map.
+  L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png').addTo(mymap);
+
+var food_spots = null;
+
+var colors = chroma.scale('Set2').mode('lch').colors(4);
+
+
+for (i = 0; i < 4; i++) {
+    $('head').append($("<style> .marker-color-" + (i + 1).toString() + " { color: " + colors[i] + "; font-size: 15px; text-shadow: 0 0 3px #ffffff;} </style>"));
+}
+// Get GeoJSON and put it on the map when it loads
+food_spots = L.geoJson.ajax("assets/Grocer_Points.geojson",{
+
+  // assign a function to the onEachFeature parameter of the food_spots object.
+  // Then each (point) feature will have a popup window.
+  // The content of the popup window is the value of `property_t` from the attribute table
+  onEachFeature: function (feature, layer) {
+      layer.bindPopup(feature.properties.Name);
+  },
+
+  pointToLayer: function(feature, latlng) { //not pop-up info, just to style the icon
+      var id = 0;
+      if (feature.properties.Kind == "Pantry") { id = 0; }
+      else if (feature.properties.Kind == "Grocery")  { id = 1; }
+      else if (feature.properties.Kind == "Farmers_Market") {id = 2;}
+      else { id = 3;} // All other property types from attribute table
+      return L.marker(latlng, {icon: L.divIcon({className: 'fas fa-shopping-basket marker-color-' + (id + 1).toString() })});
+  },
+    attribution: 'WSTA Bus Routes | Winston-Salem Department of Social Services | Route Coordinates and Lines generated by Google Maps | Base Map &copy; CartoDB | Map Author: Abe Krell'
+}).addTo(mymap);
+
+
+function setColor(density) {
+    var id = 0;
+    if (density > 500000) { id = 4; }
+    else if (density > 250000 && density <= 500000) { id = 3; }
+    else if (density > 150000 && density <= 250000) { id = 2; }
+    else if (density > 50000 &&  density <= 150000) { id = 1; }
+    else  { id = 0; }
+    return colors[id];
+}
+// ^^^^^^^^^I have tried remove the previous section of code, but doing that results in the map not loading
+function style(feature) {
+    return {
+        fillColor: setColor(feature.properties.Name),
+        fillOpacity: 0.4,
+        weight: 3,
+        opacity: .5,
+        color: '#189BD8',
+        //dashArray: '3'
+    };
+}
+
+L.geoJson.ajax("assets/all_routes.geojson", {
+    style: style
+}).addTo(mymap);
+
+
+// 9. Create Leaflet Control Object for Legend
+var legend = L.control({position: 'topright'});
+
+// 10. Function that runs when legend is added to map
+legend.onAdd = function () {
+
+    // Create Div Element and Populate it with HTML
+    var div = L.DomUtil.create('div', 'legend');
+    //this line creates a title for the choropleth part of the legend
+
+    //this line provides the legend title for the colored symbols
+    div.innerHTML += '<b>Food Source<b><br />';
+    //the next 3 lines call the plane icon along with its proper color
+    //notice the names of the venue types listed within the <p> tags at the end of the lines
+    div.innerHTML += '<i class="fas fa-shopping-basket marker-color-1"></i><p>Food Pantry</p>';
+    div.innerHTML += '<i class="fas fa-shopping-basket marker-color-2"></i><p>Grocery Store</p>';
+    div.innerHTML += '<i class="fas fa-shopping-basket marker-color-3"></i><p>Farmers Market</p>';
+    div.innerHTML += '<i class="fas fa-shopping-basket marker-color-4"></i><p>Healthy Corner Store</p>';
+    // Return the Legend div containing the HTML content
+    return div;
+};
+
+// 11. Add a legend to map
+legend.addTo(mymap);
+// 12. Add a scale bar to map
+L.control.scale({position: 'bottomleft'}).addTo(mymap);
+
+L.control.mousePosition().addTo(map);
+
+</script>
+</body>
+</html>
